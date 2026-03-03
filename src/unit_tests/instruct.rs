@@ -2,11 +2,11 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_4, PI};
 
-use yao_rs::gate::Gate;
-use yao_rs::instruct::{
+use crate::gate::Gate;
+use crate::instruct::{
     instruct_controlled, instruct_diagonal, instruct_single, mulrow, u1rows, udrows,
 };
-use yao_rs::state::State;
+use crate::state::State;
 
 fn approx_eq(a: Complex64, b: Complex64) -> bool {
     (a - b).norm() < 1e-10
@@ -727,10 +727,10 @@ mod parallel_tests {
     use num_complex::Complex64;
     use std::f64::consts::FRAC_1_SQRT_2;
 
-    use yao_rs::instruct::{
+    use crate::instruct::{
         instruct_diagonal, instruct_diagonal_parallel, instruct_single, instruct_single_parallel,
     };
-    use yao_rs::state::State;
+    use crate::state::State;
 
     fn approx_eq(a: Complex64, b: Complex64) -> bool {
         (a - b).norm() < 1e-10
@@ -832,11 +832,11 @@ mod parallel_comprehensive_tests {
     use ndarray::Array2;
     use num_complex::Complex64;
 
-    use yao_rs::gate::Gate;
-    use yao_rs::instruct::{
+    use crate::gate::Gate;
+    use crate::instruct::{
         instruct_diagonal, instruct_diagonal_parallel, instruct_single, instruct_single_parallel,
     };
-    use yao_rs::state::State;
+    use crate::state::State;
 
     fn approx_eq(a: Complex64, b: Complex64) -> bool {
         (a - b).norm() < 1e-10

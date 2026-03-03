@@ -122,3 +122,7 @@ pub fn insert_index(other_basis: &[usize], loc: usize, val: usize) -> Vec<usize>
     result.extend_from_slice(&other_basis[loc..]);
     result
 }
+
+#[cfg(test)]
+#[path = "unit_tests/index.rs"]
+mod tests;

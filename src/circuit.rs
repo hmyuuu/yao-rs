@@ -430,3 +430,10 @@ pub fn label(loc: usize, text: impl Into<String>) -> CircuitElement {
         loc,
     })
 }
+
+#[cfg(test)]
+#[path = "unit_tests/circuit.rs"]
+mod tests;
+#[cfg(test)]
+#[path = "unit_tests/circuit_noise.rs"]
+mod tests_noise;

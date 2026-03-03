@@ -248,3 +248,7 @@ pub fn circuit_from_json(json: &str) -> Result<Circuit, String> {
 
     Circuit::new(dims, elements).map_err(|e| format!("Circuit validation error: {}", e))
 }
+
+#[cfg(test)]
+#[path = "unit_tests/json.rs"]
+mod tests;

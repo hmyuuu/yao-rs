@@ -162,3 +162,7 @@ fn compute_trigger_index(control_configs: &[bool], ctrl_dims: &[usize]) -> usize
     }
     index
 }
+
+#[cfg(test)]
+#[path = "unit_tests/tensors.rs"]
+mod tests;

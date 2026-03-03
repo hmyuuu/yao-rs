@@ -205,3 +205,7 @@ pub fn group_shift(nbits: usize, positions: &mut [usize]) -> (Vec<usize>, Vec<us
 
     (masks, factors)
 }
+
+#[cfg(test)]
+#[path = "unit_tests/bitutils.rs"]
+mod tests;

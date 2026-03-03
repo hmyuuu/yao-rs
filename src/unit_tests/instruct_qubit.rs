@@ -1,8 +1,6 @@
 use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
-mod common;
-
 /// Load instruct test data from tests/data/instruct.json
 fn load_instruct_data() -> serde_json::Value {
     let data = std::fs::read_to_string(concat!(
@@ -49,7 +47,7 @@ fn states_approx_eq(a: &[Complex64], b: &[Complex64], tol: f64) -> bool {
 
 #[test]
 fn test_instruct_1q_from_julia_data() {
-    use yao_rs::instruct_qubit::instruct_1q;
+    use crate::instruct_qubit::instruct_1q;
 
     let data = load_instruct_data();
     let cases = data["cases"].as_array().unwrap();
@@ -97,7 +95,7 @@ fn test_instruct_1q_from_julia_data() {
 
 #[test]
 fn test_instruct_1q_diag_z_gate() {
-    use yao_rs::instruct_qubit::instruct_1q_diag;
+    use crate::instruct_qubit::instruct_1q_diag;
 
     // Z gate on qubit 0: diag(1, -1)
     let d0 = Complex64::new(1.0, 0.0);
@@ -115,7 +113,7 @@ fn test_instruct_1q_diag_z_gate() {
 
 #[test]
 fn test_instruct_2q_from_julia_data() {
-    use yao_rs::instruct_qubit::instruct_2q;
+    use crate::instruct_qubit::instruct_2q;
 
     let data = load_instruct_data();
     let cases = data["cases"].as_array().unwrap();
@@ -163,7 +161,7 @@ fn test_instruct_2q_from_julia_data() {
 
 #[test]
 fn test_controlled_from_julia_data() {
-    use yao_rs::instruct_qubit::{instruct_1q_controlled, instruct_2q_controlled};
+    use crate::instruct_qubit::{instruct_1q_controlled, instruct_2q_controlled};
 
     let data = load_instruct_data();
     let cases = data["cases"].as_array().unwrap();
@@ -235,16 +233,16 @@ fn get_gate_flat(case: &serde_json::Value) -> Option<Vec<Complex64>> {
         let name = gn.as_str().unwrap();
         let theta = case.get("theta").and_then(|v| v.as_f64()).unwrap_or(0.0);
         let gate = match name {
-            "X" => yao_rs::Gate::X,
-            "Y" => yao_rs::Gate::Y,
-            "Z" => yao_rs::Gate::Z,
-            "H" => yao_rs::Gate::H,
-            "S" => yao_rs::Gate::S,
-            "T" => yao_rs::Gate::T,
-            "SWAP" => yao_rs::Gate::SWAP,
-            "Rx" => yao_rs::Gate::Rx(theta),
-            "Ry" => yao_rs::Gate::Ry(theta),
-            "Rz" => yao_rs::Gate::Rz(theta),
+            "X" => crate::Gate::X,
+            "Y" => crate::Gate::Y,
+            "Z" => crate::Gate::Z,
+            "H" => crate::Gate::H,
+            "S" => crate::Gate::S,
+            "T" => crate::Gate::T,
+            "SWAP" => crate::Gate::SWAP,
+            "Rx" => crate::Gate::Rx(theta),
+            "Ry" => crate::Gate::Ry(theta),
+            "Rz" => crate::Gate::Rz(theta),
             // PSWAP/CPHASE don't exist in Gate enum; skip (covered by gate_matrix cases)
             "PSWAP" | "CPHASE" => return None,
             _ => return None,
@@ -266,7 +264,7 @@ fn get_gate_flat(case: &serde_json::Value) -> Option<Vec<Complex64>> {
 /// Run ALL instruct.json test cases through the appropriate qubit instruct function.
 #[test]
 fn test_all_julia_ground_truth() {
-    use yao_rs::instruct_qubit::*;
+    use crate::instruct_qubit::*;
 
     let data = load_instruct_data();
     let cases = data["cases"].as_array().unwrap();
@@ -376,7 +374,7 @@ fn test_all_julia_ground_truth() {
 /// Test regression: 20 random 2q gates applied sequentially.
 #[test]
 fn test_regression_20_random_2q_gates() {
-    use yao_rs::instruct_qubit::instruct_2q;
+    use crate::instruct_qubit::instruct_2q;
 
     let data = load_instruct_data();
     let cases = data["cases"].as_array().unwrap();
@@ -413,7 +411,7 @@ fn test_regression_20_random_2q_gates() {
 
 #[test]
 fn test_apply_inplace_uses_qubit_path() {
-    use yao_rs::*;
+    use crate::*;
 
     let circuit = Circuit::new(
         vec![2, 2],
@@ -434,7 +432,7 @@ fn test_apply_inplace_uses_qubit_path() {
 
 #[test]
 fn test_instruct_2q_diag_cz() {
-    use yao_rs::instruct_qubit::instruct_2q_diag;
+    use crate::instruct_qubit::instruct_2q_diag;
 
     // CZ gate = diag(1, 1, 1, -1)
     // Apply to |++⟩ = 0.5 * (|00⟩ + |01⟩ + |10⟩ + |11⟩)
@@ -460,7 +458,7 @@ fn test_instruct_2q_diag_cz() {
 
 #[test]
 fn test_instruct_1q_diag_controlled_cz_via_ctrl() {
-    use yao_rs::instruct_qubit::instruct_1q_diag_controlled;
+    use crate::instruct_qubit::instruct_1q_diag_controlled;
 
     // CZ as controlled-Z: Z on qubit 1 controlled by qubit 0
     // Apply to |++⟩ = 0.5 * (|00⟩ + |01⟩ + |10⟩ + |11⟩)
@@ -483,7 +481,7 @@ fn test_instruct_1q_diag_controlled_cz_via_ctrl() {
 
 #[test]
 fn test_instruct_2q_diag_controlled_3q() {
-    use yao_rs::instruct_qubit::instruct_2q_diag_controlled;
+    use crate::instruct_qubit::instruct_2q_diag_controlled;
 
     // 3-qubit system: apply CZ on qubits 1,2 controlled by qubit 0
     // Only |1,1,1⟩ = index 7 gets the -1 phase
@@ -511,7 +509,7 @@ fn test_instruct_2q_diag_controlled_3q() {
 
 #[test]
 fn test_apply_3q_custom_gate() {
-    use yao_rs::*;
+    use crate::*;
 
     // Create a 3-qubit identity-like custom gate and verify it's a no-op
     let dim = 8;

@@ -1,6 +1,6 @@
-use yao_rs::circuit::{Circuit, channel, put};
-use yao_rs::gate::Gate;
-use yao_rs::noise::NoiseChannel;
+use crate::circuit::{Circuit, channel, put};
+use crate::gate::Gate;
+use crate::noise::NoiseChannel;
 
 #[test]
 fn test_circuit_with_noise_channel() {
@@ -22,8 +22,8 @@ fn test_circuit_channel_loc_validation() {
 
 #[test]
 fn test_apply_skips_channels() {
-    use yao_rs::circuit::channel;
-    use yao_rs::{State, apply};
+    use crate::circuit::channel;
+    use crate::{State, apply};
 
     let elements = vec![
         put(vec![0], Gate::X),

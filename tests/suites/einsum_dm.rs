@@ -6,7 +6,7 @@ use yao_rs::einsum::{
 use yao_rs::gate::Gate;
 use yao_rs::noise::NoiseChannel;
 
-mod common;
+use crate::common;
 use common::{contract_tn, contract_tn_dm};
 
 fn c(re: f64, im: f64) -> Complex64 {

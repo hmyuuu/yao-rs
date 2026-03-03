@@ -1,10 +1,10 @@
+use crate::{
+    Circuit, CircuitElement, Gate, circuit_from_json, circuit_to_json, control, label, put,
+};
 use approx::assert_abs_diff_eq;
 use ndarray::Array2;
 use num_complex::Complex64;
 use std::f64::consts::PI;
-use yao_rs::{
-    Circuit, CircuitElement, Gate, circuit_from_json, circuit_to_json, control, label, put,
-};
 
 #[test]
 fn test_roundtrip_named_gates() {
@@ -377,7 +377,7 @@ fn test_roundtrip_label() {
     // Check label is preserved
     if let CircuitElement::Annotation(pa) = &restored.elements[1] {
         assert_eq!(pa.loc, 0);
-        let yao_rs::Annotation::Label(text) = &pa.annotation;
+        let crate::Annotation::Label(text) = &pa.annotation;
         assert_eq!(text, "Bell prep");
     } else {
         panic!("Expected Annotation element");

@@ -1,5 +1,3 @@
-#![cfg(feature = "torch")]
-
 use yao_rs::circuit::{Circuit, control, put};
 use yao_rs::einsum::circuit_to_einsum_with_boundary;
 use yao_rs::gate::Gate;

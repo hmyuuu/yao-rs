@@ -1,5 +1,5 @@
 // tests/bitutils.rs
-use yao_rs::bitutils::*;
+use crate::bitutils::*;
 
 #[test]
 fn test_indicator() {

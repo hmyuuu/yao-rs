@@ -523,3 +523,7 @@ fn kron(a: &Array2<Complex64>, b: &Array2<Complex64>) -> Array2<Complex64> {
     }
     result
 }
+
+#[cfg(test)]
+#[path = "unit_tests/noise.rs"]
+mod tests;

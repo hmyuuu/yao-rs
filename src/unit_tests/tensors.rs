@@ -1,8 +1,8 @@
+use crate::circuit::PositionedGate;
+use crate::gate::Gate;
+use crate::tensors::{Leg, gate_to_tensor};
 use ndarray::{Array2, IxDyn};
 use num_complex::Complex64;
-use yao_rs::circuit::PositionedGate;
-use yao_rs::gate::Gate;
-use yao_rs::tensors::{Leg, gate_to_tensor};
 
 fn c(re: f64, im: f64) -> Complex64 {
     Complex64::new(re, im)

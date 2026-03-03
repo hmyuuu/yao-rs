@@ -1,9 +1,9 @@
-use ndarray::Array2;
-use num_complex::Complex64;
-use yao_rs::circuit::{
+use crate::circuit::{
     Annotation, Circuit, CircuitElement, CircuitError, PositionedGate, control, label, put,
 };
-use yao_rs::gate::Gate;
+use crate::gate::Gate;
+use ndarray::Array2;
+use num_complex::Complex64;
 
 // ============================================================
 // PositionedGate tests

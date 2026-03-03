@@ -1,4 +1,4 @@
-mod common;
+use crate::common;
 
 use ndarray::Array2;
 use num_complex::Complex64;

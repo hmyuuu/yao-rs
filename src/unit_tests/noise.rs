@@ -14,7 +14,7 @@ fn assert_matrix_approx(a: &Array2<Complex64>, b: &Array2<Complex64>, tol: f64) 
 
 #[test]
 fn test_phase_amplitude_damping_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     // PhaseAmplitudeDamping(a=0.3, b=0.2, p1=0.0)
     // Julia ref: errortypes.jl:271-296
@@ -70,7 +70,7 @@ fn test_phase_amplitude_damping_kraus() {
 
 #[test]
 fn test_phase_amplitude_damping_with_excited_pop() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     // PhaseAmplitudeDamping(a=0.3, b=0.2, p1=0.4)
     // Should produce 6 Kraus operators (A0,A1,A2,B0,B1,B2)
@@ -94,7 +94,7 @@ fn test_phase_amplitude_damping_with_excited_pop() {
 
 #[test]
 fn test_noise_channel_num_qubits() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     assert_eq!(
         NoiseChannel::PhaseAmplitudeDamping {
@@ -109,7 +109,7 @@ fn test_noise_channel_num_qubits() {
 
 #[test]
 fn test_bit_flip_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::BitFlip { p: 0.1 };
     let kraus = ch.kraus_operators();
@@ -127,7 +127,7 @@ fn test_bit_flip_kraus() {
 
 #[test]
 fn test_phase_flip_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::PhaseFlip { p: 0.2 };
     let kraus = ch.kraus_operators();
@@ -141,7 +141,7 @@ fn test_phase_flip_kraus() {
 
 #[test]
 fn test_pauli_channel_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::PauliChannel {
         px: 0.1,
@@ -155,7 +155,7 @@ fn test_pauli_channel_kraus() {
 
 #[test]
 fn test_depolarizing_single_qubit_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::Depolarizing { n: 1, p: 0.1 };
     let kraus = ch.kraus_operators();
@@ -165,7 +165,7 @@ fn test_depolarizing_single_qubit_kraus() {
 
 #[test]
 fn test_depolarizing_two_qubit_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::Depolarizing { n: 2, p: 0.1 };
     let kraus = ch.kraus_operators();
@@ -180,7 +180,7 @@ fn test_depolarizing_two_qubit_kraus() {
 
 #[test]
 fn test_reset_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::Reset { p0: 0.1, p1: 0.05 };
     let kraus = ch.kraus_operators();
@@ -191,7 +191,7 @@ fn test_reset_kraus() {
 
 #[test]
 fn test_reset_only_p0() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::Reset { p0: 0.3, p1: 0.0 };
     let kraus = ch.kraus_operators();
@@ -201,7 +201,7 @@ fn test_reset_only_p0() {
 
 #[test]
 fn test_amplitude_damping_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::AmplitudeDamping {
         gamma: 0.3,
@@ -214,7 +214,7 @@ fn test_amplitude_damping_kraus() {
 
 #[test]
 fn test_phase_damping_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::PhaseDamping { gamma: 0.2 };
     let kraus = ch.kraus_operators();
@@ -224,7 +224,7 @@ fn test_phase_damping_kraus() {
 
 #[test]
 fn test_thermal_relaxation_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::ThermalRelaxation {
         t1: 100.0,
@@ -239,7 +239,7 @@ fn test_thermal_relaxation_kraus() {
 
 #[test]
 fn test_coherent_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     // Coherent error = single unitary (e.g., small rotation)
     let theta = 0.01_f64;
@@ -263,7 +263,7 @@ fn test_coherent_kraus() {
 
 #[test]
 fn test_superop_from_kraus() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
 
     let ch = NoiseChannel::BitFlip { p: 0.1 };
     let superop = ch.superop();
@@ -332,7 +332,7 @@ fn parse_matrix(val: &serde_json::Value) -> Array2<Complex64> {
 
 #[test]
 fn test_kraus_matches_julia_bit_flip() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["bit_flip_0.1"];
 
@@ -348,7 +348,7 @@ fn test_kraus_matches_julia_bit_flip() {
 
 #[test]
 fn test_kraus_matches_julia_phase_flip() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["phase_flip_0.2"];
 
@@ -364,7 +364,7 @@ fn test_kraus_matches_julia_phase_flip() {
 
 #[test]
 fn test_kraus_matches_julia_pauli_channel() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["pauli_0.1_0.2_0.05"];
 
@@ -384,7 +384,7 @@ fn test_kraus_matches_julia_pauli_channel() {
 
 #[test]
 fn test_kraus_matches_julia_amplitude_damping() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["amplitude_damping_0.3_0.0"];
 
@@ -403,7 +403,7 @@ fn test_kraus_matches_julia_amplitude_damping() {
 
 #[test]
 fn test_kraus_matches_julia_phase_damping() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["phase_damping_0.2"];
 
@@ -419,7 +419,7 @@ fn test_kraus_matches_julia_phase_damping() {
 
 #[test]
 fn test_kraus_matches_julia_phase_amp_damping() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["phase_amp_damping_0.3_0.2_0.0"];
 
@@ -439,7 +439,7 @@ fn test_kraus_matches_julia_phase_amp_damping() {
 
 #[test]
 fn test_kraus_matches_julia_phase_amp_damping_excited() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["phase_amp_damping_0.3_0.2_0.4"];
 
@@ -459,7 +459,7 @@ fn test_kraus_matches_julia_phase_amp_damping_excited() {
 
 #[test]
 fn test_kraus_matches_julia_thermal_relaxation() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let fixture = &fixtures["kraus"]["thermal_relaxation_100_80_10_0.0"];
 
@@ -480,7 +480,7 @@ fn test_kraus_matches_julia_thermal_relaxation() {
 
 #[test]
 fn test_superop_matches_julia_bit_flip() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let expected = parse_matrix(&fixtures["kraus"]["bit_flip_0.1"]["superop"]);
 
@@ -491,7 +491,7 @@ fn test_superop_matches_julia_bit_flip() {
 
 #[test]
 fn test_superop_matches_julia_depolarizing() {
-    use yao_rs::noise::NoiseChannel;
+    use crate::noise::NoiseChannel;
     let fixtures = load_noise_fixtures();
     let expected = parse_matrix(&fixtures["kraus"]["depolarizing_1_0.1"]["superop"]);
 

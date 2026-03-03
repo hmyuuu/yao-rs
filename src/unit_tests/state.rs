@@ -1,6 +1,6 @@
+use crate::state::State;
 use approx::assert_abs_diff_eq;
 use num_complex::Complex64;
-use yao_rs::state::State;
 
 #[test]
 fn test_zero_state_qubits() {

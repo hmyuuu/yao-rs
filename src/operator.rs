@@ -151,3 +151,7 @@ impl Mul<Complex64> for &OperatorPolynomial {
         OperatorPolynomial::new(coeffs, self.opstrings.clone())
     }
 }
+
+#[cfg(test)]
+#[path = "unit_tests/operator.rs"]
+mod tests;

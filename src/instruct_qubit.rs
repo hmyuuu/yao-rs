@@ -373,3 +373,7 @@ pub fn instruct_2q_diag_controlled(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "unit_tests/instruct_qubit.rs"]
+mod tests;

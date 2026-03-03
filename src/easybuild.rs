@@ -623,3 +623,7 @@ pub fn rand_google53(depth: usize, nbits: usize, rng: &mut impl Rng) -> Circuit 
 
     Circuit::new(vec![2; n], elements).unwrap()
 }
+
+#[cfg(test)]
+#[path = "unit_tests/easybuild.rs"]
+mod tests;

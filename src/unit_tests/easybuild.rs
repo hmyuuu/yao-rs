@@ -5,14 +5,14 @@ use approx::assert_abs_diff_eq;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 
-use yao_rs::apply::apply;
-use yao_rs::easybuild::{
+use crate::apply::apply;
+use crate::easybuild::{
     general_u2, general_u4, hadamard_test_circuit, pair_ring, pair_square,
     phase_estimation_circuit, qft_circuit, rand_google53, rand_supremacy2d, swap_test_circuit,
     variational_circuit,
 };
-use yao_rs::gate::Gate;
-use yao_rs::state::State;
+use crate::gate::Gate;
+use crate::state::State;
 
 const ATOL: f64 = 1e-10;
 
@@ -94,7 +94,7 @@ fn test_qft_norm_preserved() {
 fn test_general_u2_unitary() {
     // Apply general_u2 to |0>, check output norm = 1
     let gates = general_u2(0, 0.3, 0.7, 1.2);
-    let circuit = yao_rs::Circuit::new(vec![2], gates).unwrap();
+    let circuit = crate::Circuit::new(vec![2], gates).unwrap();
     let state = State::zero_state(&[2]);
     let result = apply(&circuit, &state);
     assert!(
@@ -111,7 +111,7 @@ fn test_general_u4_unitary() {
         0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5,
     ];
     let gates = general_u4(0, &params);
-    let circuit = yao_rs::Circuit::new(vec![2, 2], gates).unwrap();
+    let circuit = crate::Circuit::new(vec![2, 2], gates).unwrap();
     let state = State::zero_state(&[2, 2]);
     let result = apply(&circuit, &state);
     assert!(

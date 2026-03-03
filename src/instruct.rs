@@ -490,3 +490,7 @@ pub fn instruct_single_parallel(state: &mut State, gate: &Array2<Complex64>, loc
         }
     });
 }
+
+#[cfg(test)]
+#[path = "unit_tests/instruct.rs"]
+mod tests;

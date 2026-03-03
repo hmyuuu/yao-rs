@@ -76,3 +76,7 @@ impl State {
         self.data.len()
     }
 }
+
+#[cfg(test)]
+#[path = "unit_tests/state.rs"]
+mod tests;

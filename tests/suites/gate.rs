@@ -1,4 +1,4 @@
-mod common;
+use crate::common;
 
 use approx::assert_abs_diff_eq;
 use ndarray::Array2;

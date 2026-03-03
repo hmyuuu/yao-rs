@@ -1,4 +1,4 @@
-use yao_rs::index::{
+use crate::index::{
     insert_index, iter_basis, iter_basis_fixed, linear_to_indices, mixed_radix_index,
 };
 

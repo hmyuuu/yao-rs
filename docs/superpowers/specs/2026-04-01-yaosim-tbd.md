@@ -101,14 +101,39 @@ yaosim-core vs yao-rs-qasm separation, and whether CLI moves to a separate repo.
 - Should yaosim live in yao-rs workspace or its own repo?
 - How to handle cross-repo dependencies if separated?
 
-## 11. Overlap Generalization
+## 11. TN Boundary Extension for Arbitrary Overlap
 
-Current: only <0|U|0>. Researchers need <phi|U|psi> for transition amplitudes.
+v1 computes arbitrary <phi|U|psi> via statevec path (apply + dot product). For large circuits where statevec is infeasible, the TN path needs extension.
 
-**Open questions:**
-- Add `--bra` and `--ket` flags for arbitrary states
-- `circuit_to_einsum_with_boundary` already exists in yao-rs — could support this
-- Use cases: variational overlaps, QCELS, Loschmidt echo
+**Current yao-rs limitation:**
+- `circuit_to_overlap()` hardcodes both bra and ket to |0...0>
+- `circuit_to_einsum_with_boundary(circuit, final_state)` only supports |0> boundaries (hardcoded rank-1 tensors `[1, 0, 0, ...]`)
+
+**Yao.jl reference implementation (`yao2einsum`):**
+```julia
+yao2einsum(circuit;
+    initial_state = Dict(),   # |psi> at input legs
+    final_state   = Dict(),   # <phi| at output legs
+    optimizer     = TreeSA(),
+    mode          = VectorMode())
+```
+
+Boundary states accept two forms:
+- **Integer**: `Dict(1=>0, 2=>1)` — pins qubits to computational basis states
+- **ArrayReg**: `Dict(1=>ArrayReg([0.6, 0.8im]))` — arbitrary single-qubit state vector
+
+Qubits not listed in either dict remain as **open (free) legs** in the tensor network.
+
+Equivalence: `contract(network)[] == zero_state(n)' * (zero_state(n) |> circuit)`
+
+**Yao.jl also provides:**
+- `reg'` (adjoint) for bra representation
+- `reg_phi' * reg_psi` for inner product (the canonical idiom)
+- `fidelity(reg1, reg2)` for F(rho, sigma) including mixed states
+
+**Required changes to yao-rs:**
+- Extend `circuit_to_einsum_with_boundary` to accept `Dict<usize, Vec<Complex64>>` for both initial and final states
+- Or add a new function `circuit_to_einsum_with_states(circuit, initial_states, final_states)`
 
 ## 12. State Round-Tripping
 
@@ -185,3 +210,48 @@ An alternative noise simulation method that works on state vectors instead of de
 - How to report statistical uncertainty in output? (error bars on probabilities/expectation values)
 - Should trajectories be parallelized via rayon?
 - Reference implementations: Qiskit Aer (automatic trajectory switching), QuTiP (mcsolve)
+
+## 18. Yao.jl / yao-rs / yaosim Feature Comparison
+
+Reference table for tracking feature parity across the three layers.
+
+| Feature | Yao.jl | yao-rs | yaosim (v1 spec) |
+|---|---|---|---|
+| **State vector sim** | `apply!(reg, circuit)`, `reg \|> circuit` | `apply(circuit, state)`, `apply_inplace` | `--task statevector` |
+| **Probabilities** | `probs(reg)` | `probs(state, locs)` | `--task probs [--qubits]` |
+| **Measurement sampling** | `measure(reg; nshots=N)`, `measure!(reg)` | `measure(state, locs, nshots, rng)` | `--task sample --shots N` |
+| **Non-Z measurement** | `Measure(n, operator=X)` (algebraic eigenspace) | Not implemented | Not in v1 (TBD #8) |
+| **Expectation values** | `expect(op, reg)`, `expect(op, reg => circuit)` | `circuit_to_expectation(circuit, obs)` (TN, \|0> only) | `--task expect --obs "Z0Z1"` |
+| **Overlap** | `reg1' * reg2` (inner product) | `circuit_to_overlap` (\|0> only) | `--task overlap --bra --ket` (statevec dot product) |
+| **Fidelity** | `fidelity(reg1, reg2)` (pure + mixed) | Not implemented | Not in v1 (TBD #2) |
+| **Trace distance** | `tracedist(reg1, reg2)` | Not implemented | Not planned |
+| **Density matrix** | `DensityMatrix` register, `density_matrix(reg)` | TN-based DM via `circuit_to_einsum_dm` | Auto-detect noise → dm backend |
+| **Noise channels** | `KrausChannel`, `MixedUnitaryChannel`, predefined errors | `NoiseChannel` enum (11 variants), `kraus_operators()`, `superop()` | Auto-detect, dm backend |
+| **TN export** | `yao2einsum` (VectorMode, DensityMatrixMode, PauliBasisMode) | `circuit_to_einsum`, `circuit_to_einsum_dm` | Not in v1 (TBD #4) |
+| **TN boundary states** | `initial_state=Dict(), final_state=Dict()` (arbitrary) | `circuit_to_einsum_with_boundary` (\|0> only) | Statevec path for arbitrary (TBD #11 for TN) |
+| **TN contraction** | `contract(tn)` via OMEinsum.jl | `contract(tn)` via omeco + tch (torch feature) | Not in v1 (TBD #4) |
+| **Easybuild** | `qft_circuit`, `phase_estimation_circuit`, `hadamard_test_circuit`, `swap_test_circuit` | `qft_circuit`, `variational_circuit`, `hadamard_test_circuit`, `swap_test_circuit` | `yaosim easybuild` subcommand |
+| **QASM** | `YaoQASM.jl`, `OpenQASM.jl` (separate, unstable) | Not implemented | QASM 2.0 parser in yaosim-core |
+| **JSON** | Not built-in | `circuit_to_json`, `circuit_from_json` | Native JSON input |
+| **Visualization** | `vizcircuit` (SVG/PNG/PDF via Compose.jl) | `to_pdf` (PDF via Typst) | `yaosim show --format pdf\|svg` |
+| **Parameters** | `dispatch!(circuit, params)`, `parameters(circuit)` | Not implemented | `{{template}}` substitution (TBD #6) |
+| **AD/Gradients** | `expect'(op, reg => circuit)`, Zygote integration | Not implemented | Not planned |
+| **Qudit support** | Qubits only for named gates | Full qudit (`dims: Vec<usize>`) | Inherited from yao-rs |
+| **Circuit adjoint** | `circuit'` (adjoint) | `circuit.dagger()` | Inherited from yao-rs |
+| **Stabilizer sim** | Not built-in | Not implemented | Backend listed, not implemented (TBD #16) |
+| **Monte Carlo trajectory** | Not built-in | Not implemented | Not in v1 (TBD #17) |
+
+**Key gaps in yao-rs vs Yao.jl:**
+- No `dispatch!`-style parameter system (most impactful for variational algorithms)
+- No AD/gradient support
+- No arbitrary TN boundary states
+- No non-Z-basis measurement
+- No fidelity/trace distance
+- No PauliBasisMode in TN export
+
+**Where yao-rs/yaosim exceeds Yao.jl:**
+- Full qudit support (per-site dimensions)
+- Built-in JSON serialization
+- CLI interface (Yao.jl is library-only)
+- QASM parser (Yao.jl's is unstable/separate)
+- Unix pipeline composability

@@ -105,11 +105,18 @@ Compute expectation value <psi|O|psi> for a Pauli observable.
 
 #### `overlap`
 
-Compute transition amplitude <0|U|0>.
+Compute transition amplitude <bra|U|ket>.
 
-No additional arguments. `--init-state` is **ignored** for this task — always uses |0...0> as both bra and ket. If `--init-state` is provided alongside `--task overlap`, the CLI emits a warning and ignores it.
+| Argument | Description | Default |
+|---|---|---|
+| `--bra <state>` | Bra state: product state `"0,1,0"` or state file | \|0...0> |
+| `--ket <state>` | Ket state (input to circuit): product state or file | \|0...0> |
 
-**Shortcut:** `--overlapwithzero` expands to `--task overlap`.
+`--init-state` sets `--ket` if `--ket` is not explicitly provided.
+
+**Shortcut:** `--overlapwithzero` expands to `--task overlap` (both bra and ket default to |0...0>).
+
+**Implementation:** For v1, arbitrary <phi|U|psi> is computed via the statevec path: `apply(circuit, ket)` then inner product with bra (`sum of conj(phi_i) * psi_i`). This works because `State::data` is public. The TN path (`circuit_to_einsum_with_boundary`) only supports |0> boundaries — extending it to support arbitrary boundary states (matching Yao.jl's dictionary-based interface) is tracked in the TBD doc.
 
 ### 3.3 Composable Add-ons
 
@@ -457,12 +464,34 @@ Total: <H> = 1.500000
 
 ### 10.6 Primary Task: `overlap`
 
+**Default (<0|U|0>):**
+```bash
+$ yaosim run bell.json --task overlap
+```
 ```
 Circuit: 2 qubits | 2 gates | depth 2
 
 Overlap <0|U|0>:
   Amplitude: 0.7071+0.0000i
   |Amplitude|^2: 0.500000
+```
+
+**Arbitrary bra/ket:**
+```bash
+$ yaosim run bell.json --task overlap --bra "1,1" --ket "0,0"
+```
+```
+Circuit: 2 qubits | 2 gates | depth 2
+
+Overlap <11|U|00>:
+  Amplitude: 0.7071+0.0000i
+  |Amplitude|^2: 0.500000
+```
+
+**Shortcut:**
+```bash
+$ yaosim run bell.json --overlapwithzero
+# Equivalent to: --task overlap (bra=|0>, ket=|0>)
 ```
 
 ### 10.7 Composable Add-ons
@@ -847,9 +876,13 @@ $ yaosim run bell.json --task sample --shots 1000 --seed 42 --json
 $ yaosim run bell.json --task expect --obs "Z0Z1" --json
 {"expect": {"Z0Z1": 1.0}}
 
-# overlap
+# overlap (default: <0|U|0>)
 $ yaosim run bell.json --task overlap --json
-{"overlap": {"re": 0.7071, "im": 0.0}, "abs_squared": 0.5}
+{"bra": "00", "ket": "00", "overlap": {"re": 0.7071, "im": 0.0}, "abs_squared": 0.5}
+
+# overlap with explicit states
+$ yaosim run bell.json --task overlap --bra "1,1" --ket "0,0" --json
+{"bra": "11", "ket": "00", "overlap": {"re": 0.7071, "im": 0.0}, "abs_squared": 0.5}
 ```
 
 ---

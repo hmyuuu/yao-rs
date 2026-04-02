@@ -28,11 +28,11 @@ A command-line tool for quantum circuit simulation built on the yao-rs library. 
 ## 2. Subcommands
 
 ```
-yaosim run <circuit>        # Simulate circuit, compute tasks
-yaosim easybuild <template>  # Generate built-in circuit JSON to stdout
-yaosim convert <input>      # Convert between JSON and OpenQASM 2.0
+yaosim run <circuit>         # Simulate circuit, compute tasks
+yaosim generate <template>   # Generate built-in circuit JSON to stdout (alias: easybuild)
+yaosim convert <input>       # Convert between JSON and OpenQASM 2.0
 yaosim show <input>          # Render circuit diagram (PDF/SVG)
-yaosim info <input>         # Circuit statistics
+yaosim info <input>          # Circuit statistics
 ```
 
 All subcommands accept `-` for stdin where a circuit file is expected.
@@ -50,6 +50,8 @@ All subcommands accept `-` for stdin where a circuit file is expected.
 | `--init-state <S>` | `-i` | Product state `"0,1,0"` or state file (.json) | \|0...0> |
 | `--backend <B>` | `-b` | `statevec\|tn\|dm` | auto-detect |
 | `--circuit <tmpl>` | `-c` | Built-in circuit shorthand | — |
+| `--expect <expr>` | — | Shortcut for `--task expect --obs <expr>` | — |
+| `--overlap-with-zero` | — | Shortcut for `--task overlap` with default bra/ket=\|0> | — |
 | `--sweep "<spec>"` | — | Parameter sweep (see section 3.5) | — |
 | `--json` | `-j` | JSON output to stdout | — |
 | `--csv` | — | CSV output to stdout | — |
@@ -101,6 +103,7 @@ Compute expectation value <psi|O|psi> for a Pauli observable.
 | `--obs <expr\|file>` | Inline Pauli expression or JSON file path | required |
 
 **As primary task:** `--task expect --obs "<expr>"` runs expectation as the main output.
+**Shortcut:** `--expect "<expr>"` expands to `--task expect --obs "<expr>"`.
 **As add-on:** `--obs "<expr>"` on any other task adds an expectation section to the output.
 
 #### `overlap`
@@ -114,7 +117,7 @@ Compute transition amplitude <bra|U|ket>.
 
 `--init-state` sets `--ket` if `--ket` is not explicitly provided.
 
-**Shortcut:** `--overlapwithzero` expands to `--task overlap` (both bra and ket default to |0...0>).
+**Shortcut:** `--overlap-with-zero` expands to `--task overlap` (both bra and ket default to |0...0>). Legacy alias: `--overlapwithzero`.
 
 **Implementation:** For v1, arbitrary <phi|U|psi> is computed via the statevec path: `apply(circuit, ket)` then inner product with bra (`sum of conj(phi_i) * psi_i`). This works because `State::data` is public. The TN path (`circuit_to_einsum_with_boundary`) only supports |0> boundaries — extending it to support arbitrary boundary states (matching Yao.jl's dictionary-based interface) is tracked in the TBD doc.
 
@@ -186,22 +189,26 @@ If any `{{param}}` placeholders remain unresolved after sweep substitution, the 
 
 ---
 
-## 4. `yaosim easybuild` — Built-in Circuits
+## 4. `yaosim generate` — Built-in Circuits
 
-Outputs circuit JSON to stdout.
+Canonical name: `generate`. Legacy alias: `easybuild` (from yao-rs implementation). Outputs circuit JSON to stdout.
 
 ```
-yaosim easybuild qft --nqubits <N>
-yaosim easybuild variational --nqubits <N> --nlayers <L> --topology ring|square
-yaosim easybuild hadamard-test --gate <gate>
-yaosim easybuild swap-test --nqubits <N>
+yaosim generate qft -n <N>
+yaosim generate variational -n <N> --nlayers <L> --topology ring|square
+yaosim generate hadamard-test --gate <gate>
+yaosim generate swap-test -n <N>
 ```
+
+| Argument | Short | Alias | Description |
+|---|---|---|---|
+| `--nqubits <N>` | `--nq` | `--qubits` | Number of qubits |
 
 Wraps yao-rs `easybuild` module: `qft_circuit`, `variational_circuit`, `hadamard_test_circuit`, `swap_test_circuit`, `pair_ring`, `pair_square`.
 
 Also available as shorthand on `run`:
 ```bash
-yaosim run --circuit qft --nqubits 4
+yaosim run --circuit qft --nq 4
 ```
 
 ---
@@ -213,7 +220,7 @@ yaosim convert input.qasm --to json [-o output.json]
 yaosim convert input.json --to qasm [-o output.qasm]
 ```
 
-Format inferred from input file extension. Output format specified by `--to`.
+Format inferred from input file extension. Output format specified by `--to` (alias: `--format`).
 
 ---
 
@@ -490,8 +497,9 @@ Overlap <11|U|00>:
 
 **Shortcut:**
 ```bash
-$ yaosim run bell.json --overlapwithzero
+$ yaosim run bell.json --overlap-with-zero
 # Equivalent to: --task overlap (bra=|0>, ket=|0>)
+# Legacy alias: --overlapwithzero
 ```
 
 ### 10.7 Composable Add-ons
@@ -542,10 +550,10 @@ yaosim run bell.json --task probs --sample 1000 --json
 
 ---
 
-## 11. `yaosim easybuild` Output Showcase
+## 11. `yaosim generate` Output Showcase
 
 ```bash
-$ yaosim easybuild qft --nqubits 4 | head -20
+$ yaosim generate qft --nq 4 | head -20
 {
   "num_qubits": 4,
   "elements": [
@@ -555,7 +563,7 @@ $ yaosim easybuild qft --nqubits 4 | head -20
   ]
 }
 
-$ yaosim easybuild variational --nqubits 4 --nlayers 2 --topology ring
+$ yaosim generate variational --nq 4 --nlayers 2 --topology ring
 # Outputs variational ansatz JSON with Ry rotations + CNOT entanglers
 ```
 
@@ -596,8 +604,8 @@ Rendering circuit diagram...
 # To stdout (pipe to viewer)
 $ yaosim show bell.json --format svg > bell.svg
 
-# Pipe from easybuild
-$ yaosim easybuild qft --nqubits 4 | yaosim show - --format svg -o qft.svg
+# Pipe from generate
+$ yaosim generate qft --nq 4 | yaosim show - --format svg -o qft.svg
 
 # Direct to viewer on macOS
 $ yaosim show bell.json --format pdf | open -f -a Preview
@@ -669,7 +677,7 @@ Measurement Samples (1000 shots):
 $ yaosim show bell.json --format pdf -o bell.pdf
 
 # Try built-in QFT
-$ yaosim run --circuit qft --nqubits 4 --verbose
+$ yaosim run --circuit qft --nq 4 --verbose
 Circuit: 4 qubits | 10 gates | depth 6  (QFT-4)
 Initial state: |0000>
 
@@ -680,7 +688,7 @@ State vector (non-zero amplitudes):
   ... (16 amplitudes, all equal — uniform superposition)
 
 # Inspect the QFT circuit
-$ yaosim easybuild qft --nqubits 4 | yaosim info -
+$ yaosim generate qft --nq 4 | yaosim info -
 Circuit: stdin
   Qubits: 4 | Gates: 10 (H: 4, Phase: 6) | Depth: 6
 ```
@@ -689,7 +697,7 @@ Circuit: stdin
 
 ```bash
 # Generate variational template
-$ yaosim easybuild variational --nqubits 4 --nlayers 2 --topology ring -o vqe.json
+$ yaosim generate variational --nq 4 --nlayers 2 --topology ring -o vqe.json
 
 # Inspect
 $ yaosim info vqe.json
@@ -794,11 +802,11 @@ Expectation Value:
 
 ```bash
 # Generate + simulate in one pipe
-$ yaosim easybuild qft --nqubits 4 | yaosim run - --task probs --json --quiet
+$ yaosim generate qft --nq 4 | yaosim run - --task probs --json --quiet
 
 # Size sweep
 $ for n in $(seq 2 8); do
-    yaosim easybuild qft --nqubits $n \
+    yaosim generate qft --nq $n \
       | yaosim run - --task probs --json --quiet 2>/dev/null \
       | jq "{qubits: $n, nonzero: ([.probs | to_entries[] | select(.value > 0.001)] | length)}"
   done
@@ -824,6 +832,10 @@ $ yaosim run bell.json --task expect --obs "Z0Z1" --json --quiet
 $ yaosim run bell.json --task expect --obs "Z0Z1"
 $ yaosim run bell.json --task expect --obs "0.5 Z0Z1 + 0.3 X0X1"
 $ yaosim run bell.json --task expect --obs "Z0 + Z1 + Z2"
+
+# Shortcut (equivalent to --task expect --obs)
+$ yaosim run bell.json --expect "Z0Z1"
+$ yaosim run bell.json --expect "ZZ"
 
 # Dense positional (Qiskit-style, left-to-right = qubit 0)
 $ yaosim run bell.json --task expect --obs "ZZ"
@@ -929,3 +941,17 @@ error: <what went wrong>
 4. Tests for all subcommands, parsers, and output formats
 
 **Post-merge follow-up:** File a GitHub issue for parameterized circuit support in yao-rs library (to replace `{{template}}` mechanism).
+
+---
+
+## 19. Revision History
+
+**2026-04-02 — Showcase-driven testing (4 subagent personas, cold guessing, no --help)**
+
+Tested with: senior quantum researcher, grad student, ML researcher, Qiskit engineer. All changes above (aliases, shortcuts, renamed subcommand) were applied based on testing results. Detailed feedback in `yaosim-demo-shell/feedback-agent-{1..4}.jsonl`.
+
+Key design decisions confirmed by testing:
+- `run` is the right verb (standard CLI convention, not Qiskit-specific `simulate`)
+- `easybuild` kept as canonical (yao-rs implementation name), `generate` added as discoverable alias
+- `convert --to` is fine, `--format` alias covers other conventions
+- `--expect <obs>` shortcut is essential — the `--task expect --obs` two-flag pattern was the most common failure

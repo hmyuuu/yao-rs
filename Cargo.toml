@@ -1,5 +1,5 @@
 [workspace]
-members = ["yao-rs-py"]
+members = ["yao-cli"]
 resolver = "2"
 
 [workspace.package]

@@ -12,7 +12,7 @@ pub fn measure(
     let mut reg = state_io::read_state(input)?;
     let nbits = reg.nqubits();
     let measure_locs: Vec<usize> = locs.map_or_else(|| (0..nbits).collect(), |l| l.to_vec());
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let mut outcomes = Vec::with_capacity(shots);
     for _ in 0..shots {

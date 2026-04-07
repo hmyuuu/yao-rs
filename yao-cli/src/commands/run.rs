@@ -26,7 +26,7 @@ pub fn run(
 
     if let Some(nshots) = shots {
         let measure_locs: Vec<usize> = locs.map_or_else(|| (0..nbits).collect(), |l| l.to_vec());
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let mut outcomes = Vec::with_capacity(nshots);
         for _ in 0..nshots {

@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use ndarray::Array2;
 use num_complex::Complex64;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::circuit::{Circuit, CircuitElement, control, put};
 use crate::gate::Gate;
@@ -426,7 +426,7 @@ fn pick_supremacy_gate(last: &mut u8, rng: &mut impl Rng) -> Gate {
     } else {
         // Pick from {T, SqrtX, SqrtY} but not the same as last
         let choices: Vec<u8> = vec![1, 2, 3].into_iter().filter(|&x| x != *last).collect();
-        let idx = rng.gen_range(0..choices.len());
+        let idx = rng.random_range(0..choices.len());
         let chosen = choices[idx];
         *last = chosen;
         match chosen {
@@ -609,7 +609,7 @@ pub fn rand_google53(depth: usize, nbits: usize, rng: &mut impl Rng) -> Circuit 
     for layer in 0..depth {
         // Random single-qubit gates on each qubit
         for q in 0..n {
-            let idx = rng.gen_range(0..single_gates.len());
+            let idx = rng.random_range(0..single_gates.len());
             elements.push(put(vec![q], single_gates[idx].clone()));
         }
 

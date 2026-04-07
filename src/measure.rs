@@ -9,7 +9,7 @@
 //!   with post-processing
 
 use num_complex::Complex64;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::density_matrix::DensityMatrix;
 use crate::register::{ArrayReg, Register};
@@ -138,7 +138,7 @@ fn logical_loc_to_bit(nbits: usize, loc: usize) -> usize {
 
 /// Sample an index from a probability distribution.
 fn sample_from_probs(probs: &[f64], rng: &mut impl Rng) -> usize {
-    let r: f64 = rng.r#gen();
+    let r: f64 = rng.random();
     let mut cumsum = 0.0;
     for (i, &p) in probs.iter().enumerate() {
         cumsum += p;

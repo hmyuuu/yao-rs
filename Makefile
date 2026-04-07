@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help build build-release check fmt fmt-check clippy test check-all clean doc doc-serve doc-open rustdoc example-qft run-plan module-graph
+.PHONY: help build build-release check fmt fmt-check clippy test check-all clean doc doc-serve doc-open rustdoc example-qft run-plan module-graph cli
 
 CARGO ?= cargo
 DOC_PORT ?= 3001
@@ -31,6 +31,8 @@ help:
 	@printf "  module-graph  Generate module graph JSON from rustdoc\n"
 	@printf "\nAutomation:\n"
 	@printf "  run-plan      Execute a plan with Claude autorun\n"
+	@printf "\nCLI:\n"
+	@printf "  cli           Build and install the yao CLI tool\n"
 	@printf "\nExamples:\n"
 	@printf "  example-qft   Run the QFT example\n"
 
@@ -81,6 +83,9 @@ example-qft:
 module-graph:  ## Generate module graph JSON from rustdoc
 	cargo +nightly rustdoc -- -Z unstable-options --output-format json
 	python3 scripts/gen_module_graph.py
+
+cli:
+	$(CARGO) install --path yao-cli
 
 clean:
 	$(CARGO) clean

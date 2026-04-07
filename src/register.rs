@@ -1,5 +1,5 @@
 use num_complex::Complex64;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::circuit::Circuit;
 
@@ -35,7 +35,7 @@ impl ArrayReg {
     pub fn rand_state(nbits: usize, rng: &mut impl Rng) -> Self {
         let dim = 1usize << nbits;
         let mut state: Vec<Complex64> = (0..dim)
-            .map(|_| Complex64::new(rng.r#gen::<f64>() - 0.5, rng.r#gen::<f64>() - 0.5))
+            .map(|_| Complex64::new(rng.random::<f64>() - 0.5, rng.random::<f64>() - 0.5))
             .collect();
         let norm = state.iter().map(|amp| amp.norm_sqr()).sum::<f64>().sqrt();
         for amp in &mut state {

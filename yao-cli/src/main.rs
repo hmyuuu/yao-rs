@@ -32,6 +32,7 @@ fn main() -> anyhow::Result<()> {
             | Commands::Expect { .. }
             | Commands::Run { .. }
             | Commands::Toeinsum { .. }
+            | Commands::Example { .. }
     );
 
     let out = OutputConfig {
@@ -68,7 +69,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Toeinsum { circuit, mode } => commands::toeinsum::toeinsum(&circuit, mode, &out),
         #[cfg(feature = "typst")]
         Commands::Visualize { circuit } => commands::visualize::visualize(&circuit, &out),
-        Commands::Example { name, nqubits } => commands::example::example(&name, nqubits),
+        Commands::Example { name, nqubits } => commands::example::example(&name, nqubits, &out),
         Commands::Completions { shell } => {
             let shell = shell
                 .or_else(clap_complete::Shell::from_env)

@@ -1,7 +1,8 @@
+use crate::output::OutputConfig;
 use anyhow::{Result, bail};
 use yao_rs::{Circuit, Gate, circuit_to_json, control, put};
 
-pub fn example(name: &str, nqubits: Option<usize>) -> Result<()> {
+pub fn example(name: &str, nqubits: Option<usize>, out: &OutputConfig) -> Result<()> {
     let circuit = match name {
         "bell" => bell(nqubits.unwrap_or(2))?,
         "ghz" => ghz(nqubits.unwrap_or(3))?,
@@ -10,8 +11,8 @@ pub fn example(name: &str, nqubits: Option<usize>) -> Result<()> {
             "Unknown example: '{name}'\n\nAvailable examples: bell, ghz, qft"
         ),
     };
-    println!("{}", circuit_to_json(&circuit));
-    Ok(())
+    let json_value: serde_json::Value = serde_json::from_str(&circuit_to_json(&circuit))?;
+    out.emit(&format!("{circuit}"), &json_value)
 }
 
 fn bell(n: usize) -> Result<Circuit> {

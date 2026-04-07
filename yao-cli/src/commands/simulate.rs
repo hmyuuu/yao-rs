@@ -18,10 +18,12 @@ pub fn simulate(circuit_path: &str, input_path: Option<&str>, out: &OutputConfig
     if let Some(ref path) = out.output {
         state_io::write_state(&result, path)?;
         out.info(&format!("State written to {}", path.display()));
+    } else if std::io::stdout().is_terminal() {
+        anyhow::bail!(
+            "refusing to write binary state to terminal.\n\
+             Use --output <file> or pipe to another command (e.g. yao probs -)."
+        );
     } else {
-        if std::io::stdout().is_terminal() {
-            out.info("hint: writing binary state to stdout; pipe to another command or use --output <file>");
-        }
         let stdout = std::io::stdout();
         let mut writer = BufWriter::new(stdout.lock());
         state_io::write_state_to_writer(&result, &mut writer)?;

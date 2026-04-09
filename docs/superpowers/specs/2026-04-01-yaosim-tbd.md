@@ -17,19 +17,24 @@ Auto-select simulation backend based on circuit content and init-state type:
 
 `--task fidelity --reference ref.json` — compute fidelity between output state and a reference.
 
+**Upstream status (2026-04-08):** `ArrayReg::fidelity(&self, other: &ArrayReg) -> f64` is implemented upstream. Returns `|<psi|phi>|^2`. Can be adopted directly.
+
 **Open questions:**
-- Requires new library code: `fidelity(state1, state2) -> f64` not in yao-rs today
-- Should it support fidelity between density matrices too?
+- ~~Requires new library code~~ → Upstream has pure-state fidelity; density matrix fidelity (`F(rho, sigma) = (tr sqrt(sqrt(rho) sigma sqrt(rho)))^2`) still not implemented
 - Output format: single scalar? Include phase info?
+- CLI: `--task fidelity --reference ref.json` or `--task fidelity --bra state1.json --ket state2.json`?
 
 ## 3. Entanglement Entropy Task
 
 `--task entropy --partition 0,1:2,3` — compute entanglement entropy via partial trace.
 
+**Upstream status (2026-04-08):** `DensityMatrix::partial_tr(&self, traced_locs: &[usize])` and `DensityMatrix::von_neumann_entropy(&self) -> f64` are both implemented upstream. Also `DensityMatrix::purity(&self) -> f64`. The full pipeline (pure state → density matrix → partial trace → entropy) is available.
+
 **Open questions:**
-- Requires new library code: reduced density matrix + von Neumann entropy not in yao-rs
+- ~~Requires new library code~~ → Upstream has partial trace + von Neumann entropy; can adopt
 - Which entropy measures? Von Neumann only, or also Renyi?
 - How to specify partitions on the CLI ergonomically?
+- Also expose `--task purity` as a separate quick check?
 
 ## 4. TN Subcommand (`yaosim tn`)
 
@@ -59,6 +64,8 @@ omeco also gets its own standalone CLI for non-quantum TN users.
 ## 6. Parameterized Circuit Mechanism
 
 Currently planned as `{{theta}}` template substitution in the CLI layer.
+
+**Upstream status (2026-04-08):** No parameterized circuit support upstream either. Template substitution remains the pragmatic CLI-layer approach.
 
 **Open questions:**
 - Template substitution vs library-level `Gate::Rx(Parameter)` support
@@ -211,47 +218,187 @@ An alternative noise simulation method that works on state vectors instead of de
 - Should trajectories be parallelized via rayon?
 - Reference implementations: Qiskit Aer (automatic trajectory switching), QuTiP (mcsolve)
 
-## 18. Yao.jl / yao-rs / yaosim Feature Comparison
+## 19. Extended Operator Set (P0, P1, Pu, Pd)
 
-Reference table for tracking feature parity across the three layers.
+Upstream yao-rs supports operators beyond Pauli: P0 (`|0⟩⟨0|`), P1 (`|1⟩⟨1|`), Pu (raising `|0⟩⟨1|`), Pd (lowering `|1⟩⟨0|`). Our yaosim spec only supports X, Y, Z, I.
 
-| Feature | Yao.jl | yao-rs | yaosim (v1 spec) |
-|---|---|---|---|
-| **State vector sim** | `apply!(reg, circuit)`, `reg \|> circuit` | `apply(circuit, state)`, `apply_inplace` | `--task statevector` |
-| **Probabilities** | `probs(reg)` | `probs(state, locs)` | `--task probs [--qubits]` |
-| **Measurement sampling** | `measure(reg; nshots=N)`, `measure!(reg)` | `measure(state, locs, nshots, rng)` | `--task sample --shots N` |
-| **Non-Z measurement** | `Measure(n, operator=X)` (algebraic eigenspace) | Not implemented | Not in v1 (TBD #8) |
-| **Expectation values** | `expect(op, reg)`, `expect(op, reg => circuit)` | `circuit_to_expectation(circuit, obs)` (TN, \|0> only) | `--task expect --obs "Z0Z1"` |
-| **Overlap** | `reg1' * reg2` (inner product) | `circuit_to_overlap` (\|0> only) | `--task overlap --bra --ket` (statevec dot product) |
-| **Fidelity** | `fidelity(reg1, reg2)` (pure + mixed) | Not implemented | Not in v1 (TBD #2) |
-| **Trace distance** | `tracedist(reg1, reg2)` | Not implemented | Not planned |
-| **Density matrix** | `DensityMatrix` register, `density_matrix(reg)` | TN-based DM via `circuit_to_einsum_dm` | Auto-detect noise → dm backend |
-| **Noise channels** | `KrausChannel`, `MixedUnitaryChannel`, predefined errors | `NoiseChannel` enum (11 variants), `kraus_operators()`, `superop()` | Auto-detect, dm backend |
-| **TN export** | `yao2einsum` (VectorMode, DensityMatrixMode, PauliBasisMode) | `circuit_to_einsum`, `circuit_to_einsum_dm` | Not in v1 (TBD #4) |
-| **TN boundary states** | `initial_state=Dict(), final_state=Dict()` (arbitrary) | `circuit_to_einsum_with_boundary` (\|0> only) | Statevec path for arbitrary (TBD #11 for TN) |
-| **TN contraction** | `contract(tn)` via OMEinsum.jl | `contract(tn)` via omeco + tch (torch feature) | Not in v1 (TBD #4) |
-| **Easybuild** | `qft_circuit`, `phase_estimation_circuit`, `hadamard_test_circuit`, `swap_test_circuit` | `qft_circuit`, `variational_circuit`, `hadamard_test_circuit`, `swap_test_circuit` | `yaosim easybuild` subcommand |
-| **QASM** | `YaoQASM.jl`, `OpenQASM.jl` (separate, unstable) | Not implemented | QASM 2.0 parser in yaosim-core |
-| **JSON** | Not built-in | `circuit_to_json`, `circuit_from_json` | Native JSON input |
-| **Visualization** | `vizcircuit` (SVG/PNG/PDF via Compose.jl) | `to_pdf` (PDF via Typst) | `yaosim show --format pdf\|svg` |
-| **Parameters** | `dispatch!(circuit, params)`, `parameters(circuit)` | Not implemented | `{{template}}` substitution (TBD #6) |
-| **AD/Gradients** | `expect'(op, reg => circuit)`, Zygote integration | Not implemented | Not planned |
-| **Qudit support** | Qubits only for named gates | Full qudit (`dims: Vec<usize>`) | Inherited from yao-rs |
-| **Circuit adjoint** | `circuit'` (adjoint) | `circuit.dagger()` | Inherited from yao-rs |
-| **Stabilizer sim** | Not built-in | Not implemented | Backend listed, not implemented (TBD #16) |
-| **Monte Carlo trajectory** | Not built-in | Not implemented | Not in v1 (TBD #17) |
+**Why it matters:**
+- Projectors P0/P1 enable post-selection probabilities: `<psi|P0(0)|psi>` = probability of qubit 0 being |0⟩
+- Raising/lowering operators are standard in condensed matter Hamiltonians (e.g., Heisenberg model: `Pu(i)Pd(j) + Pd(i)Pu(j)`)
+- Upstream CLI syntax: `P0(0)`, `Pu(0)Pd(1)` — already implemented and tested
 
-**Key gaps in yao-rs vs Yao.jl:**
-- No `dispatch!`-style parameter system (most impactful for variational algorithms)
-- No AD/gradient support
-- No arbitrary TN boundary states
-- No non-Z-basis measurement
-- No fidelity/trace distance
-- No PauliBasisMode in TN export
+**Open questions:**
+- Add to yaosim v1 or defer?
+- Site-indexed syntax: `P0_0` or `P0(0)` or `P00` (ambiguous with P0 on qubit 0)?
+- Upstream uses parenthesized syntax `P0(0)` — avoids ambiguity. Consider adopting for extended ops while keeping `Z0Z1` for Pauli.
 
-**Where yao-rs/yaosim exceeds Yao.jl:**
-- Full qudit support (per-site dimensions)
-- Built-in JSON serialization
-- CLI interface (Yao.jl is library-only)
-- QASM parser (Yao.jl's is unstable/separate)
-- Unix pipeline composability
+## 20. QASM Parser: Build vs Reuse `openqasm` Crate
+
+Our spec says "build QASM 2.0 parser in yaosim-core". Upstream uses the `openqasm` crate (external) which provides:
+- Full QASM 2.0 parsing with `SourceCache` and `Parser`
+- Type checking via `program.type_check()`
+- Gate linearization to U+CX primitives via `Linearize` (depth=100)
+- Bundled `qelib1.inc` with extensible `FilePolicy`
+- `GateWriter` trait for custom circuit building
+
+**Upstream approach:** Extend `qelib1.inc` with modern Qiskit gates (swap, sx, p, cp, crx, cry, etc.) via `EXTRA_GATES` string appended to the bundled file.
+
+**Trade-offs:**
+- **Reuse `openqasm` crate:** Much less code, battle-tested parser, handles edge cases. Decomposition to U+CX means all gates become Rz/Ry/CX (lossy — original gate names lost).
+- **Build our own:** Full control, preserve original gate names (H stays H, not Rz·Ry·Rz), can add noise channel parsing, better error messages with line numbers. More work.
+
+**Open questions:**
+- Can we use `openqasm` crate but avoid the Rz/Ry/CX decomposition? (Needs custom `GateWriter` that maps to yao-rs gates directly instead of linearizing)
+- If we build our own, how much of `openqasm`'s edge case handling do we need?
+- Upstream's approach loses gate identity (H becomes 3 rotation gates) — acceptable for simulation but bad for `yaosim info` and `yaosim show`
+
+## 21. Binary State Format for Pipeline Efficiency
+
+Upstream implements `yao-state-v1`: JSON header line + raw little-endian Complex128 bytes. This is much more efficient than JSON for intermediate state piping.
+
+**Format:**
+```
+{"format":"yao-state-v1","num_qubits":3,"dims":[2,2,2],"num_elements":8,"dtype":"complex128"}\n
+<raw bytes: 8 * 16 = 128 bytes of f64 pairs>
+```
+
+**Our spec currently:** JSON state files only, product-state strings for `--init-state`.
+
+**Proposal:** Support both formats:
+- `--init-state state.json` — JSON (human-editable, small circuits)
+- `--init-state state.bin` — binary (efficient, pipeline use)
+- `--output-state state.bin` — binary output for piping
+- Detect format by file extension or magic bytes
+
+**Open questions:**
+- Should yaosim support a `simulate` subcommand (like upstream) that outputs binary state for pipe chains?
+- Or is `yaosim run bell.json --output-state state.bin` sufficient?
+- Binary format needs qudit extension (our fork has `dims: Vec<usize>` not just `vec![2; n]`)
+
+## 22. Fetch Subcommand (QASMBench Download)
+
+Upstream implements `yao fetch qasmbench <name>` to download benchmark circuits from the QASMBench GitHub repository.
+
+**Features:**
+- `yao fetch qasmbench list` — list all available circuits (queries GitHub API)
+- `yao fetch qasmbench list --scale small` — filter by scale
+- `yao fetch qasmbench grover` — download by name (auto-detect scale)
+- Pipeline: `yao fetch qasmbench grover | yao fromqasm - | yao run - --shots 100`
+
+**Open questions:**
+- Add to yaosim v1 or defer?
+- Extend to other sources beyond QASMBench? (e.g., MQTBench, Queko)
+- Cache downloaded circuits locally?
+- Requires network access — how to handle offline mode?
+
+## 23. Shell Completions
+
+Upstream implements `yao completions [shell]` using `clap_complete`. Trivial to add with clap derive.
+
+**Usage:** `eval "$(yaosim completions)"` added to `.bashrc`/`.zshrc`.
+
+**Open questions:**
+- Add to v1 (trivial) or defer?
+- Recommend adding to v1 — near-zero effort with clap_complete, significant UX improvement.
+
+## 24. Direct DensityMatrix Type vs TN-Only DM Path
+
+Upstream has a first-class `DensityMatrix` type with:
+- `DensityMatrix::from_reg(reg)` — pure → mixed
+- `DensityMatrix::mixed(weights, regs)` — statistical mixture
+- `DensityMatrix::partial_tr(traced_locs)` — partial trace
+- `DensityMatrix::von_neumann_entropy()` — von Neumann entropy
+- `DensityMatrix::purity()` — purity Tr(ρ²)
+- `impl Register for DensityMatrix` — apply circuits via column-wise statevec simulation
+
+Our fork only has TN-based DM via `circuit_to_einsum_dm`. This is the tensor network approach (good for large circuits with structure) but cannot compute partial trace, entropy, or purity.
+
+**Trade-off:**
+- Direct DM: O(4^n) memory, supports all DM operations (trace, entropy, etc.), exact
+- TN DM: memory depends on circuit structure, only computes what the einsum asks for, needs contraction
+
+**Proposal:** Port upstream's `DensityMatrix` for small-circuit DM tasks (entropy, purity, partial trace). Keep TN path for large circuits. CLI auto-selects based on qubit count.
+
+**Open questions:**
+- At what qubit count should the CLI switch from direct DM to TN? (~12 qubits = 16M entries)
+- Should `--backend dm` always mean direct DM, with TN as a separate `--backend tn-dm`?
+- Port upstream code directly or reimplement with our qudit-compatible State type?
+
+## 25. Upstream Architecture Divergence: Qubit-Only vs Qudit
+
+Upstream dropped qudit support on 2026-04-07, refactoring to qubit-only `ArrayReg` backed by `Vec<Complex64>` with `nbits: usize`. Our fork retains `State` with `dims: Vec<usize>` supporting arbitrary per-site dimensions.
+
+**Implications for yaosim:**
+- Our qudit support is a differentiator but complicates porting upstream features
+- Upstream's `bitbasis` crate and bit-manipulation fast paths assume d=2
+- Features like `DensityMatrix`, `expect_arrayreg`, `fidelity` are qubit-only upstream
+- Porting them to our fork requires generalizing from `1 << nbits` to `dims.iter().product()`
+
+**Open questions:**
+- Is qudit support worth the maintenance cost for yaosim v1?
+- Can we have a fast qubit path (like upstream) with qudit fallback?
+- Should named gates (X, Y, Z, H, etc.) remain qubit-only while `Custom` gates handle qudits?
+
+## 18. Yao.jl / yao-rs (upstream) / yao-rs (our fork) / yaosim Feature Comparison
+
+Reference table updated 2026-04-09 after reviewing upstream GiggleLiu/yao-rs (commit e5c509d, 2026-04-08).
+
+**Key upstream changes since our fork:**
+- Dropped qudit support → qubit-only `ArrayReg` (April 7 refactor)
+- Added `openqasm` crate integration for QASM 2.0 import/export
+- Added `DensityMatrix` with `partial_tr`, `von_neumann_entropy`, `purity`
+- Added `expect_arrayreg()` and `expect_dm()` (statevec-based expectation)
+- Added `ArrayReg::fidelity()`
+- Added `bitbasis` crate for optimized bit manipulation
+- Added full CLI (`yao-cli`) with Unix-pipe architecture
+- Added `yao fetch qasmbench` for downloading benchmark circuits
+
+| Feature | Yao.jl | yao-rs (upstream) | yao-rs (our fork) | yaosim (v1 spec) |
+|---|---|---|---|---|
+| **State vector sim** | `apply!(reg, circuit)` | `apply(&circuit, &reg)` on `ArrayReg` | `apply(circuit, state)` on `State` | `--task statevector` |
+| **Register type** | `ArrayReg` (qubit) | `ArrayReg` (qubit-only, `Vec<Complex64>`) | `State` (qudit, `Array1<Complex64>`, `dims`) | Inherited |
+| **Probabilities** | `probs(reg)` | `probs()` via `measure` module | `probs(state, locs)` | `--task probs [--qubits]` |
+| **Measurement** | `measure(reg; nshots=N)` | `measure_with_postprocess()` (NoPostProcess/ResetTo/RemoveMeasured) | `measure(state, locs, nshots, rng)` | `--task sample --shots N` |
+| **Non-Z measurement** | `Measure(n, operator=X)` | Not implemented | Not implemented | Not in v1 (TBD #8) |
+| **Expectation (pure)** | `expect(op, reg)` | `expect_arrayreg(reg, op)` — works on any state | `circuit_to_expectation` (TN, \|0⟩ only) | `--task expect --obs` (statevec fallback for non-\|0⟩) |
+| **Expectation (mixed)** | `expect(op, dm)` | `expect_dm(dm, op)` | Not implemented | Auto via dm backend |
+| **Operators** | X, Y, Z, I | X, Y, Z, I, **P0, P1, Pu, Pd** | X, Y, Z, I | Pauli only (TBD #19) |
+| **Overlap** | `reg1' * reg2` | `circuit_to_overlap` (\|0⟩ only) | `circuit_to_overlap` (\|0⟩ only) | `--task overlap --bra --ket` (statevec dot) |
+| **Fidelity** | `fidelity(reg1, reg2)` (pure + mixed) | `ArrayReg::fidelity()` (pure only) | Not implemented | TBD #2 (can adopt upstream) |
+| **Trace distance** | `tracedist(reg1, reg2)` | Not implemented | Not implemented | Not planned |
+| **Density matrix** | `DensityMatrix` register | `DensityMatrix` with `partial_tr`, `von_neumann_entropy`, `purity`, `mixed()` | TN-based via `circuit_to_einsum_dm` | Auto-detect noise → dm backend |
+| **Noise channels** | `KrausChannel`, predefined | `NoiseChannel` (11 variants) | `NoiseChannel` (11 variants) | Auto-detect, dm backend |
+| **TN export** | `yao2einsum` (3 modes) | `circuit_to_einsum`, `circuit_to_einsum_dm` | `circuit_to_einsum`, `circuit_to_einsum_dm` | Not in v1 (TBD #4) |
+| **TN contraction** | `contract(tn)` via OMEinsum.jl | `contract(tn)` via omeco + tch | `contract(tn)` via omeco + tch | Not in v1 (TBD #4) |
+| **Easybuild** | `qft_circuit`, etc. | `qft_circuit`, `variational_circuit`, `phase_estimation_circuit`, `rand_supremacy2d`, `rand_google53`, etc. | Same set | `yaosim easybuild` subcommand |
+| **QASM** | `YaoQASM.jl` (unstable) | `openqasm` crate: `from_qasm()`, `to_qasm()` | Not implemented | Originally "build in yaosim-core" (TBD #20) |
+| **JSON** | Not built-in | `circuit_to_json`, `circuit_from_json` (no noise) | Same | Native JSON input |
+| **Visualization** | `vizcircuit` (SVG/PNG/PDF) | `to_pdf` (Typst) | `to_pdf` (Typst) | `yaosim show --format pdf\|svg` |
+| **Parameters** | `dispatch!(circuit, params)` | Not implemented | Not implemented | `{{template}}` substitution (TBD #6) |
+| **Parameter sweep** | Not built-in | Not implemented | Not implemented | `--sweep` flag (**unique to yaosim**) |
+| **AD/Gradients** | `expect'(op, reg => circuit)` | Not implemented | Not implemented | Not planned |
+| **Qudit support** | Qubits only for named gates | **Dropped** (qubit-only since April 7) | Full qudit (`dims: Vec<usize>`) | Inherited from our fork |
+| **Circuit adjoint** | `circuit'` | `circuit.dagger()` | `circuit.dagger()` | Inherited |
+| **CLI** | None (library-only) | `yao` CLI (Unix-pipe: simulate\|measure\|probs\|expect\|run) | None | `yaosim` CLI (task-oriented) |
+| **CLI operator syntax** | N/A | `Z(0)Z(1)`, `0.5*Z(0)Z(1) + X(0)` | N/A | `Z0Z1`, `0.5 X0Z1 + X0X1` |
+| **State I/O** | N/A | Binary `yao-state-v1` (JSON header + raw bytes) | N/A | JSON state files (TBD #21) |
+| **Fetch benchmarks** | N/A | `yao fetch qasmbench` | N/A | Not in v1 (TBD #22) |
+| **Shell completions** | N/A | `yao completions` | N/A | Not in v1 (TBD #23) |
+| **Stabilizer sim** | Not built-in | Not implemented | Not implemented | TBD #16 |
+| **Monte Carlo trajectory** | Not built-in | Not implemented | Not implemented | TBD #17 |
+
+**Key gaps in our fork vs upstream:**
+- No `DensityMatrix` type (partial trace, entropy, purity, mixed states)
+- No `expect_arrayreg` / `expect_dm` (statevec-based expectation for arbitrary states)
+- No `ArrayReg::fidelity()`
+- No QASM support
+- No `bitbasis` crate (optimized bit manipulation)
+
+**Where our fork / yaosim exceeds upstream:**
+- Full qudit support preserved (per-site dimensions)
+- Task-oriented CLI design (more discoverable than pipe architecture)
+- Composable add-ons (`--with-probs --sample N --obs` in one command)
+- Human-readable output by default (histograms, top-k, formatted tables)
+- Parameter sweep (`--sweep`)
+- Overlap with arbitrary states (`--bra`/`--ket`)
+- Dual observable syntax (site-indexed + dense positional)

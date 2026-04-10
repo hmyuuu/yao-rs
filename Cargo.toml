@@ -21,6 +21,7 @@ qasm = ["dep:openqasm"]
 [dependencies]
 bitbasis = { path = "bitbasis" }
 num-complex = { version = "0.4", features = ["serde"] }
+faer = "0.24"
 ndarray = "0.17"
 omeco = "0.2"
 rand = "0.10"
@@ -39,6 +40,18 @@ criterion = { version = "0.5", features = ["html_reports"] }
 
 [[bench]]
 name = "apply"
+harness = false
+
+[[bench]]
+name = "gates"
+harness = false
+
+[[bench]]
+name = "qft"
+harness = false
+
+[[bench]]
+name = "density"
 harness = false
 
 [[example]]

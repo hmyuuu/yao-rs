@@ -1,36 +1,64 @@
 use crate::bit_ops::{bmask, bmask_range, indicator};
+use smallvec::SmallVec;
+
+/// Inline chunk capacity for the common case.
+const INLINE_CHUNKS: usize = 8;
 
 /// Iterator over controlled subspace of bits.
 /// Efficiently enumerates basis states with fixed control bits and free others.
+///
+/// Uses inline storage for the common case and spills to heap only for
+/// unusually fragmented control layouts.
 pub struct IterControl {
     n: usize,
     base: usize,
-    masks: Vec<usize>,
-    factors: Vec<usize>,
+    masks: SmallVec<[usize; INLINE_CHUNKS]>,
+    factors: SmallVec<[usize; INLINE_CHUNKS]>,
     current: usize,
 }
 
 impl IterControl {
+    #[inline]
     pub fn len(&self) -> usize {
         self.n
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.n == 0
     }
 
+    #[inline(always)]
     pub fn get(&self, k: usize) -> usize {
-        let mut out = 0;
-        for (&mask, &factor) in self.masks.iter().zip(self.factors.iter()) {
-            out += (k & mask) * factor;
+        match self.masks.len() {
+            0 => self.base,
+            1 => (k & self.masks[0]) * self.factors[0] + self.base,
+            2 => {
+                (k & self.masks[0]) * self.factors[0]
+                    + (k & self.masks[1]) * self.factors[1]
+                    + self.base
+            }
+            3 => {
+                (k & self.masks[0]) * self.factors[0]
+                    + (k & self.masks[1]) * self.factors[1]
+                    + (k & self.masks[2]) * self.factors[2]
+                    + self.base
+            }
+            _ => {
+                let mut out = self.base;
+                for (&mask, &factor) in self.masks.iter().zip(self.factors.iter()) {
+                    out += (k & mask) * factor;
+                }
+                out
+            }
         }
-        out + self.base
     }
 }
 
 impl Iterator for IterControl {
     type Item = usize;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<usize> {
         if self.current >= self.n {
             return None;
@@ -41,6 +69,7 @@ impl Iterator for IterControl {
         Some(value)
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         let remaining = self.n - self.current;
         (remaining, Some(remaining))
@@ -49,6 +78,7 @@ impl Iterator for IterControl {
 
 impl ExactSizeIterator for IterControl {}
 
+#[inline]
 pub fn itercontrol(nbits: usize, positions: &[usize], bit_configs: &[usize]) -> IterControl {
     assert_eq!(positions.len(), bit_configs.len());
     assert!(positions.iter().all(|&position| position < nbits));
@@ -75,17 +105,23 @@ pub fn itercontrol(nbits: usize, positions: &[usize], bit_configs: &[usize]) -> 
     }
 }
 
-pub fn group_shift(nbits: usize, positions: &mut [usize]) -> (Vec<usize>, Vec<usize>) {
+pub fn group_shift(
+    nbits: usize,
+    positions: &mut [usize],
+) -> (
+    SmallVec<[usize; INLINE_CHUNKS]>,
+    SmallVec<[usize; INLINE_CHUNKS]>,
+) {
     positions.sort_unstable();
 
-    let mut masks = Vec::new();
-    let mut factors = Vec::new();
-    let positions_1: Vec<usize> = positions.iter().map(|&position| position + 1).collect();
+    let mut masks = SmallVec::<[usize; INLINE_CHUNKS]>::new();
+    let mut factors = SmallVec::<[usize; INLINE_CHUNKS]>::new();
 
     let mut previous = 0usize;
     let mut free_index = 0usize;
 
-    for &position in &positions_1 {
+    for &position in positions.iter() {
+        let position = position + 1;
         assert!(position > previous, "Duplicate position");
         if position != previous + 1 {
             factors.push(1usize << (previous - free_index));
@@ -158,6 +194,20 @@ mod tests {
         let ic = itercontrol(2, &[0, 1], &[1, 0]);
         let values: Vec<usize> = ic.collect();
         assert_eq!(values, vec![1]);
+    }
+
+    #[test]
+    fn test_itercontrol_more_than_eight_chunks() {
+        let positions = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18];
+        let bit_configs = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0];
+        let values: Vec<usize> = itercontrol(19, &positions, &bit_configs).collect();
+
+        assert_eq!(values.len(), 1usize << (19 - positions.len()));
+        for basis in values {
+            for (&position, &bit) in positions.iter().zip(bit_configs.iter()) {
+                assert_eq!((basis >> position) & 1, bit);
+            }
+        }
     }
 
     #[test]

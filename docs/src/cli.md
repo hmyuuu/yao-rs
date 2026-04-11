@@ -10,12 +10,6 @@ Build from source (requires Rust toolchain):
 cargo install --path yao-cli
 ```
 
-To enable PDF circuit rendering, add the `typst` feature:
-
-```bash
-cargo install --path yao-cli --features typst
-```
-
 ## Quick Start: Bell State
 
 Create a circuit file `bell.json`:
@@ -176,7 +170,7 @@ See [Tensor Network JSON Format](#tensor-network-json-format) below for the outp
 
 ### `yao visualize`
 
-Render a circuit diagram as PDF (requires `typst` feature).
+Render a circuit diagram as PDF.
 
 ```bash
 yao visualize circuit.json --output circuit.pdf
@@ -339,18 +333,20 @@ The `toeinsum` command outputs a JSON tensor network DTO:
       "data_im": [0.0, 0.0, 0.0, 0.0]
     }
   ],
-  "size_dict": { "0": 2, "1": 2, "2": 2, "3": 2, "4": 2 }
+  "size_dict": { "0": 2, "1": 2, "2": 2, "3": 2, "4": 2 },
+  "contraction_order": null
 }
 ```
 
 | Field | Description |
 |-------|-------------|
 | `format` | Always `"yao-tn-v1"` |
-| `mode` | `"pure"` or `"dm"` |
+| `mode` | `"pure"`, `"dm"`, `"overlap"`, or `"state"` |
 | `eincode.input_indices` | Index labels for each tensor (list of lists) |
 | `eincode.output_indices` | Open indices of the final state |
 | `tensors` | Gate tensors with shape and split real/imaginary data |
 | `size_dict` | Maps each index label to its dimension |
+| `contraction_order` | Nested binary tree for contraction order (added by `yao optimize`, null otherwise) |
 
 Index labels are strings. In density matrix mode (`dm`), bra indices use negative labels (e.g., `"-1"`, `"-2"`).
 
@@ -379,11 +375,25 @@ yao simulate circuit.json | yao probs -
 yao simulate circuit.json | yao expect - --op "Z(0)Z(1)"
 ```
 
-### Tensor network export
+### Tensor network export and contraction
 
 ```bash
+# Export only
 yao toeinsum circuit.json --output tn.json
 yao toeinsum circuit.json --mode dm --output tn_dm.json
+
+# Full pipeline: export → optimize → contract
+yao toeinsum circuit.json --mode state | yao optimize - | yao contract -
+yao toeinsum circuit.json --mode overlap | yao optimize - | yao contract -
+yao toeinsum circuit.json --op "Z(0)Z(1)" | yao optimize - | yao contract -
+```
+
+### OpenQASM import/export
+
+```bash
+yao fromqasm circuit.qasm | yao run - --shots 1024
+yao example bell | yao toqasm -
+yao fetch qasmbench grover | yao fromqasm - | yao run - --shots 100
 ```
 
 ### Circuit visualization

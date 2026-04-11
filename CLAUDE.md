@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-yao-rs is a Rust port of [Yao.jl](https://github.com/QuantumBFS/Yao.jl) focused on quantum circuit description, qubit simulation, and tensor network export. Circuits support qudit dimensions for tensor network export, but state-vector simulation is qubit-only via `ArrayReg`.
+yao-rs is a Rust port of [Yao.jl](https://github.com/QuantumBFS/Yao.jl) focused on quantum circuit description, qubit simulation, tensor network export, and built-in SVG circuit rendering. Circuits support qudit dimensions for tensor network export, but state-vector simulation is qubit-only via `ArrayReg`.
 
 ## Philosophy
 - **Simple logic, maximum reuse.** Prefer straightforward code with fewer branches (less if-else).
@@ -43,7 +43,7 @@ Gate → PositionedGate → Circuit → TensorNetwork / ArrayReg
 
 - **PositionedGate** (`circuit.rs`): Gate + placement info (`target_locs`, `control_locs`, `control_configs`). Built via `put()` for uncontrolled gates or `control()` for controlled gates.
 
-- **CircuitElement** (`circuit.rs`): Enum wrapping `Gate(PositionedGate)`, `Annotation(PositionedAnnotation)`, or `Channel(PositionedChannel)`. Annotations are visual-only labels (no-op in execution, rendered in PDF diagrams). Channels represent noise (used by density-matrix/tensor-network paths only).
+- **CircuitElement** (`circuit.rs`): Enum wrapping `Gate(PositionedGate)`, `Annotation(PositionedAnnotation)`, or `Channel(PositionedChannel)`. Annotations are visual-only labels (no-op in execution, rendered in SVG diagrams). Channels represent noise (used by density-matrix/tensor-network paths only).
 
 - **Circuit** (`circuit.rs`): Validated sequence of `CircuitElement`s on a register with specified dimensions (`dims: Vec<usize>`). Constructor validates: control sites must be qubits, no overlapping control/target locs, matrix size matches target dimensions.
 
@@ -74,11 +74,11 @@ Gate → PositionedGate → Circuit → TensorNetwork / ArrayReg
 - `operator.rs`: Pauli operators and polynomials for expectation values
 - `json.rs`: Circuit serialization
 - `einsum.rs`, `tensors.rs`: Tensor network export (supports qudits)
+- `svg.rs`: Built-in SVG circuit renderer for `Circuit::to_svg()`; annotations are visual-only labels (no-op in execution, rendered in SVG diagrams)
 - `noise.rs`: Noise channel definitions
 - `qasm.rs` (feature-gated): OpenQASM 2.0 import/export via the `openqasm` crate. Import decomposes all gates to U+CX primitives. Export maps Gate variants to standard qelib1.inc names.
 - `contractor.rs` (feature-gated `omeinsum`): Native tensor network contraction via [omeinsum-rs](https://github.com/tensor4all/omeinsum-rs) submodule. Converts `TensorNetwork` ndarray tensors to omeinsum column-major format, contracts with greedy optimization, returns column-major `ArrayD`.
 - `torch_contractor.rs` (feature-gated `torch`): libtorch-based tensor network contraction via omeco greedy optimizer
-- `typst.rs` (feature-gated `typst`): PDF circuit rendering via embedded Typst
 
 ## Test Layout
 
@@ -104,6 +104,7 @@ yao optimize tn.json           # Optimize contraction order (greedy default)
 yao optimize tn.json --method treesa --ntrials 20  # TreeSA optimizer
 yao contract tn.json           # Contract pre-optimized tensor network
 yao toeinsum circuit.json --mode state | yao optimize - | yao contract -  # Full pipeline
+yao visualize circuit.json --output circuit.svg  # Render a circuit diagram
 yao fromqasm circuit.qasm      # Import OpenQASM 2.0 circuit
 yao toqasm circuit.json        # Export circuit as OpenQASM 2.0
 yao fetch qasmbench list       # List QASMBench benchmark circuits
@@ -123,7 +124,6 @@ All commands output human-readable text in a terminal, JSON when piped. Use `--j
 - `parallel`: Enable rayon for parallel operations
 - `qasm`: OpenQASM 2.0 import/export (enabled by default in CLI)
 - `torch`: PyTorch tensor contraction via tch (requires libtorch)
-- `typst`: PDF circuit diagram generation
 
 ## Claude Skills
 

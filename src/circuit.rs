@@ -286,6 +286,24 @@ impl Circuit {
         self.dims.iter().product()
     }
 
+    /// Render the circuit as SVG markup.
+    ///
+    /// The returned string can be written directly to an `.svg` file.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let circuit = Circuit::new(vec![2, 2], vec![
+    ///     put(vec![0], Gate::H),
+    ///     control(vec![0], vec![1], Gate::X),
+    /// ]).unwrap();
+    ///
+    /// let svg = circuit.to_svg();
+    /// std::fs::write("circuit.svg", svg)?;
+    /// ```
+    pub fn to_svg(&self) -> String {
+        crate::svg::to_svg(self)
+    }
+
     /// Return the adjoint circuit U†.
     ///
     /// The dagger of a circuit has:
@@ -312,26 +330,6 @@ impl Circuit {
             .collect();
 
         Circuit::new(self.dims.clone(), dagger_elements)
-    }
-
-    /// Compile the circuit to PDF bytes.
-    ///
-    /// This embeds the Typst compiler to render a visual diagram of the circuit.
-    /// On first call, this will download the required Typst packages (~1MB).
-    ///
-    /// # Example
-    /// ```ignore
-    /// let circuit = Circuit::new(vec![2, 2], vec![
-    ///     put(vec![0], Gate::H),
-    ///     control(vec![0], vec![1], Gate::X),
-    /// ]).unwrap();
-    ///
-    /// let pdf = circuit.to_pdf()?;
-    /// std::fs::write("circuit.pdf", pdf)?;
-    /// ```
-    #[cfg(feature = "typst")]
-    pub fn to_pdf(&self) -> Result<Vec<u8>, crate::typst::PdfError> {
-        crate::typst::to_pdf(self)
     }
 }
 

@@ -16,13 +16,10 @@ pub mod operator;
 #[cfg(feature = "qasm")]
 pub mod qasm;
 pub mod register;
+pub mod svg;
 pub mod tensors;
 #[cfg(feature = "torch")]
 pub mod torch_contractor;
-#[cfg(feature = "typst")]
-pub mod typst;
-#[cfg(feature = "typst")]
-pub use typst::{PdfError, to_pdf};
 
 pub use apply::{apply, apply_inplace};
 pub use circuit::{
@@ -44,5 +41,6 @@ pub use measure::{MeasureResult, PostProcess, measure_with_postprocess, probs};
 pub use noise::NoiseChannel;
 pub use operator::{Op, OperatorPolynomial, OperatorString, op_matrix};
 pub use register::{ArrayReg, Register};
+pub use svg::to_svg;
 #[cfg(feature = "torch")]
 pub use torch_contractor::contract;

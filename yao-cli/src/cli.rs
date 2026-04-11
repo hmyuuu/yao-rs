@@ -18,6 +18,9 @@ Pipeline (no intermediate files):
   yao simulate circuit.json | yao measure - --shots 1024
   yao simulate circuit.json | yao probs -
 
+Tensor network pipeline:
+  yao toeinsum circuit.json --mode state | yao optimize - | yao contract -
+
 Use `yao <command> --help` for detailed usage of each command.
 
 Enable tab completion:
@@ -141,18 +144,77 @@ Examples:
         locs: Option<Vec<usize>>,
     },
 
+    /// Contract a pre-optimized tensor network
+    #[cfg(feature = "omeinsum")]
+    #[command(after_help = "\
+Examples:
+  yao toeinsum circuit.json | yao optimize - | yao contract -
+  yao toeinsum circuit.json --mode overlap | yao optimize - | yao contract -
+  yao toeinsum circuit.json --op \"Z(0)Z(1)\" | yao optimize - | yao contract -")]
+    Contract {
+        /// Tensor network JSON file with contraction_order (use - for stdin)
+        input: String,
+    },
+
+    /// Optimize contraction order for a tensor network
+    #[cfg(feature = "omeinsum")]
+    #[command(after_help = "\
+Examples:
+  yao optimize tn.json
+  yao optimize tn.json --method treesa --ntrials 20
+  yao toeinsum circuit.json --mode overlap | yao optimize -")]
+    Optimize {
+        /// Tensor network JSON file (use - for stdin)
+        input: String,
+        /// Optimization method: greedy (default) or treesa
+        #[arg(long, default_value = "greedy")]
+        method: String,
+        /// [greedy] Weight for output-vs-input size balance (default: 0.0)
+        #[arg(long)]
+        alpha: Option<f64>,
+        /// [greedy] Temperature for stochastic selection; 0 = deterministic (default: 0.0)
+        #[arg(long)]
+        temperature: Option<f64>,
+        /// [treesa] Number of independent SA trials (default: 10)
+        #[arg(long)]
+        ntrials: Option<usize>,
+        /// [treesa] Iterations per temperature level (default: 50)
+        #[arg(long)]
+        niters: Option<usize>,
+        /// [treesa] Inverse temperature schedule as "start:step:stop" (default: "0.01:0.05:15.0")
+        #[arg(long)]
+        betas: Option<String>,
+        /// [treesa] Space complexity target threshold (default: 20.0)
+        #[arg(long)]
+        sc_target: Option<f64>,
+        /// [treesa] Time complexity weight (default: 1.0)
+        #[arg(long)]
+        tc_weight: Option<f64>,
+        /// [treesa] Space complexity weight (default: 1.0)
+        #[arg(long)]
+        sc_weight: Option<f64>,
+        /// [treesa] Read-write complexity weight (default: 0.0)
+        #[arg(long)]
+        rw_weight: Option<f64>,
+    },
+
     /// Export circuit as tensor network (einsum)
     #[command(after_help = "\
 Examples:
   yao toeinsum circuit.json
-  yao toeinsum circuit.json --output tn.json
-  yao toeinsum circuit.json --mode dm")]
+  yao toeinsum circuit.json --mode dm
+  yao toeinsum circuit.json --mode overlap
+  yao toeinsum circuit.json --mode state
+  yao toeinsum circuit.json --op \"Z(0)Z(1)\"")]
     Toeinsum {
         /// Circuit JSON file (use - for stdin)
         circuit: String,
-        /// Export mode: pure (default) or dm (density matrix)
+        /// Export mode: pure (default), dm, overlap, or state
         #[arg(long, value_enum, default_value_t = TnMode::Pure)]
         mode: TnMode,
+        /// Operator expression for expectation TN (overrides --mode)
+        #[arg(long, allow_hyphen_values = true)]
+        op: Option<String>,
     },
 
     /// Render circuit diagram as PDF
@@ -244,4 +306,8 @@ pub enum TnMode {
     Pure,
     /// Density-matrix tensor network
     Dm,
+    /// Scalar overlap ⟨0|U|0⟩
+    Overlap,
+    /// State vector with |0⟩ boundary tensors
+    State,
 }

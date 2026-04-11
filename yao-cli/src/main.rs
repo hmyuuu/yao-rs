@@ -35,6 +35,13 @@ fn main() -> anyhow::Result<()> {
             | Commands::Example { .. }
             | Commands::Fetch { .. }
     );
+    #[cfg(feature = "omeinsum")]
+    {
+        auto_json |= matches!(
+            cli.command,
+            Commands::Contract { .. } | Commands::Optimize { .. }
+        );
+    }
     #[cfg(feature = "qasm")]
     {
         auto_json |= matches!(
@@ -74,7 +81,38 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Probs { input, locs } => commands::probs::probs(&input, locs.as_deref(), &out),
         Commands::Expect { input, op } => commands::expect::expect(&input, &op, &out),
-        Commands::Toeinsum { circuit, mode } => commands::toeinsum::toeinsum(&circuit, mode, &out),
+        #[cfg(feature = "omeinsum")]
+        Commands::Contract { input } => commands::contract::contract_cmd(&input, &out),
+        #[cfg(feature = "omeinsum")]
+        Commands::Optimize {
+            input,
+            method,
+            alpha,
+            temperature,
+            ntrials,
+            niters,
+            betas,
+            sc_target,
+            tc_weight,
+            sc_weight,
+            rw_weight,
+        } => commands::optimize::optimize_cmd(
+            &input,
+            &method,
+            alpha,
+            temperature,
+            ntrials,
+            niters,
+            betas.as_deref(),
+            sc_target,
+            tc_weight,
+            sc_weight,
+            rw_weight,
+            &out,
+        ),
+        Commands::Toeinsum { circuit, mode, op } => {
+            commands::toeinsum::toeinsum(&circuit, mode, op.as_deref(), &out)
+        }
         #[cfg(feature = "qasm")]
         Commands::Fromqasm { input } => commands::fromqasm::fromqasm(&input, &out),
         #[cfg(feature = "qasm")]

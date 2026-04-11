@@ -9,9 +9,10 @@ name = "yao"
 path = "src/main.rs"
 
 [features]
-default = ["qasm"]
+default = ["qasm", "omeinsum"]
 qasm = ["yao-rs/qasm"]
 typst = ["yao-rs/typst"]
+omeinsum = ["yao-rs/omeinsum"]
 
 [dependencies]
 yao-rs = { path = "..", default-features = false }
@@ -23,4 +24,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 owo-colors = { version = "4", features = ["supports-colors"] }
 num-complex = "0.4"
+omeco = "0.2"
 rand = "0.10"
+
+[dev-dependencies]
+assert_cmd = "2"
+serde_json = "1"
